@@ -1,0 +1,30 @@
+[submodule "minecraft-imported-symbols"]
+	path = minecraft-imported-symbols
+	url = ../../minecraft-linux/minecraft-imported-symbols
+[submodule "properties-parser"]
+	path = properties-parser
+	url = ../../minecraft-linux/properties-parser
+[submodule "mcpelauncher-linker"]
+	path = mcpelauncher-linker
+	url = ../../minecraft-linux/mcpelauncher-linker
+[submodule "mcpelauncher-core"]
+	path = mcpelauncher-core
+	url = ../../minecraft-linux/mcpelauncher-core
+[submodule "mcpelauncher-common"]
+	path = mcpelauncher-common
+	url = ../../minecraft-linux/mcpelauncher-common
+[submodule "logger"]
+	path = logger
+	url = ../../minecraft-linux/logger
+[submodule "libc-shim"]
+	path = libc-shim
+	url = ../../minecraft-linux/libc-shim
+[submodule "file-util"]
+	path = file-util
+	url = ../../minecraft-linux/file-util
+[submodule "arg-parser"]
+	path = arg-parser
+	url = ../../minecraft-linux/arg-parser
+[submodule "android-support-headers"]
+	path = android-support-headers
+	url = ../../minecraft-linux/android-support-headers

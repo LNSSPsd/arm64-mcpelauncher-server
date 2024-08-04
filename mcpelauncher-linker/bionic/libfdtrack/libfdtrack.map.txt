@@ -1,7 +1,0 @@
-LIBFDTRACK {
-  global:
-    fdtrack_dump;
-    fdtrack_iterate;
-  local:
-    *;
-};
