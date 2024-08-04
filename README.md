@@ -20,4 +20,8 @@ mkdir -p build
 cd build
 CC=clang CXX=clang++ cmake ..
 make -j12
+cp server.properties build/mcpelauncher-server/
+mkdir build/mcpelauncher-server/data # or preferred data path
+# the server should be at build/mcpelauncher-server
+# need to unpack game to build/mcpelauncher-server/game (or customized path) before use, the directory should contain 'lib/' and 'assets/'
 ```
