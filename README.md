@@ -10,4 +10,14 @@ Support for latest version is to be done later
 ![img](screenshot.png)
 
 The image above shows a Minecraft server running on Raspberry Pi 4 device smoothly 
-(Only terminal window ssh'd to raspi, the Minecraft window is on my x86_64 machine)
+(Only terminal window ssh'd to raspi, the Minecraft window is on my `x86_64` machine)
+
+Some ideas of the class structures came from [LeviLamina](https://github.com/LiteLDev/LeviLamina).
+
+Build instruction:
+```
+mkdir -p build
+cd build
+CC=clang CXX=clang++ cmake ..
+make -j12
+```
