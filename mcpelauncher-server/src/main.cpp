@@ -62,76 +62,6 @@ int main(int argc, char* argv[]) {
 	linker::init();
 	Log::trace("Launcher", "linker loaded");
 
-#if !defined(__linux__)
-	// Fake /proc/cpuinfo
-	// https://github.com/pytorch/cpuinfo depends on this file for linux builds
-	auto fakeproc = PathHelper::getPrimaryDataDirectory() + "proc/";
-	FileUtil::mkdirRecursive(fakeproc);
-	std::ofstream fake_cpuinfo(fakeproc + "/cpuinfo", std::ios::binary | std::ios::trunc);
-	if(fake_cpuinfo.is_open()) {
-#if defined(__i386__) || defined(__x86_64__) 
-		fake_cpuinfo << R"(processor	: 0
-vendor_id	: GenuineIntel
-cpu family	: 6
-model		: 142
-model name	: Intel(R) Core(TM) i7-8550U CPU @ 1.80GHz
-stepping	: 10
-microcode	: 0xffffffff
-cpu MHz		: 1991.999
-cache size	: 8192 KB
-physical id	: 0
-siblings	: 8
-core id		: 0
-cpu cores	: 4
-apicid		: 0
-initial apicid	: 0
-fpu		: yes
-fpu_exception	: yes
-cpuid level	: 22
-wp		: yes
-flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht syscall nx pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology cpuid pni pclmulqdq vmx ssse3 fma cx16 pcid sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch invpcid_single pti ssbd ibrs ibpb stibp tpr_shadow vnmi ept vpid ept_ad fsgsbase bmi1 avx2 smep bmi2 erms invpcid rdseed adx smap clflushopt xsaveopt xsavec xgetbv1 xsaves flush_l1d arch_capabilities
-vmx flags	: vnmi invvpid ept_x_only ept_ad ept_1gb tsc_offset vtpr ept vpid unrestricted_guest ept_mode_based_exec
-bugs		: cpu_meltdown spectre_v1 spectre_v2 spec_store_bypass l1tf mds swapgs itlb_multihit srbds
-bogomips	: 3983.99
-clflush size	: 64
-cache_alignment	: 64
-address sizes	: 39 bits physical, 48 bits virtual
-power management:
-
-
-)";
-#elif defined(__arm__) || defined(__aarch64__)
-		fake_cpuinfo << R"(Processor	: AArch64 Processor rev 4 (aarch64)
-processor	: 0
-BogoMIPS	: 38.40
-Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32
-CPU implementer	: 0x51
-CPU architecture: 8
-CPU variant	: 0xa
-CPU part	: 0x801
-CPU revision	: 4
-
-Hardware	: Qualcomm Technologies, Inc MSM8998
-
-)";
-#endif
-		fake_cpuinfo.close();
-	}
-	// cpuinfo for arm64 fails if these are missing...
-	auto fakesys = PathHelper::getPrimaryDataDirectory() + "sys/";
-	auto fake_cpu = fakesys + "devices/system/cpu/";
-	FileUtil::mkdirRecursive(fake_cpu);
-	std::ofstream fake_cpu_present(fake_cpu + "/present", std::ios::binary | std::ios::trunc);
-	if(fake_cpu_present.is_open()) {
-		fake_cpu_present << R"(0-3)";
-		fake_cpu_present.close();
-	}
-	std::ofstream fake_cpu_possible(fake_cpu + "/possible", std::ios::binary | std::ios::trunc);
-	if(fake_cpu_possible.is_open()) {
-		fake_cpu_possible << R"(0-3)";
-		fake_cpu_possible.close();
-	}
-#endif
 	properties::property<std::string> game_dir(prop, "game-directory", "game");
 	properties::property<std::string> data_dir(prop, "data-directory", "data");
 	PathHelper::setGameDir(game_dir);
@@ -150,56 +80,12 @@ Hardware	: Qualcomm Technologies, Inc MSM8998
 		{"premium_cache", data_dir.get()+"/premium_cache/"},
 		{".", PathHelper::getGameDir()+"assets/"}
 	};
-#if !defined(__linux__)
-	// fake proc fs needed for macOS and windows
-	shim::rewrite_filesystem_access.emplace_back("/proc", fakeproc);
-	shim::rewrite_filesystem_access.emplace_back("/sys", fakesys);
-#endif
 	for(auto&& redir : shim::rewrite_filesystem_access) {
 		Log::trace("REDIRECT", "%s to %s", redir.first.data(), redir.second.data());
 	}
 	auto libC = MinecraftUtils::getLibCSymbols();
-
-#ifdef USE_ARMHF_SUPPORT
-	linker::load_library("ld-android.so", {});
-	android_dlextinfo extinfo;
-	std::vector<mcpelauncher_hook_t> hooks;
-	for(auto&& entry : libC) {
-		hooks.emplace_back(mcpelauncher_hook_t{entry.first.data(), entry.second});
-	}
-	hooks.emplace_back(mcpelauncher_hook_t{nullptr, nullptr});
-	extinfo.flags = ANDROID_DLEXT_MCPELAUNCHER_HOOKS;
-	extinfo.mcpelauncher_hooks = hooks.data();
-	if(linker::dlopen_ext(PathHelper::findDataFile("lib/" + std::string(PathHelper::getAbiDir()) + "/libc.so").c_str(), 0, &extinfo) == nullptr) {
-		Log::error("LAUNCHER", "Failed to load armhf compat libc.so Original Error: %s", linker::dlerror());
-		return 1;
-	}
-	if(linker::dlopen(PathHelper::findDataFile("lib/" + std::string(PathHelper::getAbiDir()) + "/libm.so").c_str(), 0) == nullptr) {
-		Log::error("LAUNCHER", "Failed to load armhf compat libm.so Original Error: %s", linker::dlerror());
-		return 1;
-	}
-#elif defined(__APPLE__) && defined(__aarch64__)
-	MinecraftUtils::loadLibM();
-	android_dlextinfo extinfo;
-	std::vector<mcpelauncher_hook_t> hooks;
-	for(auto&& entry : libC) {
-		hooks.emplace_back(mcpelauncher_hook_t{entry.first.data(), entry.second});
-	}
-	hooks.emplace_back(mcpelauncher_hook_t{nullptr, nullptr});
-	extinfo.flags = ANDROID_DLEXT_MCPELAUNCHER_HOOKS;
-	extinfo.mcpelauncher_hooks = hooks.data();
-	if(linker::dlopen_ext(PathHelper::findDataFile("lib/" + std::string(PathHelper::getAbiDir()) + "/libc.so").c_str(), 0, &extinfo) == nullptr) {
-		Log::error("LAUNCHER", "Failed to load arm64 variadic compat libc.so Original Error: %s", linker::dlerror());
-		return 1;
-	}
-	if(linker::dlopen(PathHelper::findDataFile("lib/" + std::string(PathHelper::getAbiDir()) + "/liblog.so").c_str(), 0) == nullptr) {
-		Log::error("LAUNCHER", "Failed to load arm64 variadic compat liblog.so Original Error: %s", linker::dlerror());
-		return 1;
-	}
-#else
 	linker::load_library("libc.so", libC);
 	MinecraftUtils::loadLibM();
-#endif
 	MinecraftUtils::setupHybris();
 	try {
 		PathHelper::findGameFile(std::string("lib/") + MinecraftUtils::getLibraryAbi() + "/libminecraftpe.so");
@@ -235,22 +121,22 @@ Hardware	: Qualcomm Technologies, Inc MSM8998
 	Log::info("Launcher", "Loaded Minecraft library");
 	Log::debug("Launcher", "Minecraft is at offset %p", (void*)MinecraftUtils::getLibraryBase(handle));
 	base = MinecraftUtils::getLibraryBase(handle);
-	if(*(uint64_t*)(base+0x3FFFFFF)!=0xD80679B19400) {
-		Log::error("Launcher", "Incompatible Minecraft version, only v1.20.81.01 is supported.");
+	if(*(uint64_t*)(base+0x38B4309)!=0x1b011e7c0100527aL) {
+		Log::error("Launcher", "Incompatible Minecraft version, only v1.21.2.02 is supported.");
 		return 52;
 	}
 
 	modLoader.loadModsFromDirectory(PathHelper::getPrimaryDataDirectory() + "mods/");
 
-	Log::info("Launcher", "Game version: v1.20.81.01");
+	Log::info("Launcher", "Game version: v1.21.2.02");
 
 	//Log::info("Launcher", "SERVER!");
 	Log::debug("Launcher", "Creating ContentLog");
 	ContentLog *contentLog=new ContentLog;
 	Log::debug("Launcher", "Creating AppConfigs");
 	std::unique_ptr<AppConfigs> appConfigs=AppConfigsFactory::createAppConfigs();
-	((ServiceReference(*)(ContentLog*))(base+0x6035C1C))(contentLog);
-	((ServiceReference(*)(AppConfigs*))(base+0x607E4E4))(appConfigs.get());
+	((ServiceReference(*)(ContentLog*))(base+0x61CFC5C))(contentLog);
+	((ServiceReference(*)(AppConfigs*))(base+0x6218250))(appConfigs.get());
 	Log::info("Launcher", "Constructing AppPlatform");
 	AppPlatform *AppPlatform_obj=new AppPlatform(true);
 	Log::info("Launcher", "Patching AppPlatform vtable");
@@ -303,6 +189,10 @@ Hardware	: Qualcomm Technologies, Inc MSM8998
 		// getUsedMemory
 		return 0;
 	};
+	myvtable[238]=(void*)(bool(*)())[]()->bool {
+		// isTablet??
+		return false;
+	};
 	myvtable[265]=(void*)(uint64_t(*)())[]()->uint64_t {
 		// calculateAvailableDiskFreeSpace(Core::Path const&)
 		return 1024L*1024L*1024L*1024L;
@@ -315,11 +205,11 @@ Hardware	: Qualcomm Technologies, Inc MSM8998
 		Log::info("Launcher", "current workdir");
 		return "";
 	};
-	myvtable[328]=justCurrentWd;
-	myvtable[329]=justCurrentWd;
-	myvtable[330]=justCurrentWd;
 	myvtable[331]=justCurrentWd;
-	myvtable[339]=justCurrentWd;
+	myvtable[332]=justCurrentWd;
+	myvtable[333]=justCurrentWd;
+	myvtable[334]=justCurrentWd;
+	myvtable[342]=justCurrentWd;
 	*(void**)AppPlatform_obj=myvtable;
 	std::string (*myGetInternalStorageFunc)()=[]()->std::string {
 		Log::info("Launcher", "test");
@@ -331,26 +221,17 @@ Hardware	: Qualcomm Technologies, Inc MSM8998
 	};
 	myvtable[70]=(void*)myStub;
 	uint64_t jump_val[2]={0xD61F012058000049L};
-	jump_val[1]=(uint64_t)myGetInternalStorageFunc;
-	memcpy((void*)(base+0x5C24644), (void*)jump_val, 16);
 	jump_val[1]=(uint64_t)myStub;
-	memcpy((void*)(base+0x5C23F10), (void*)jump_val, 16);
-	//memcpy((void*)(base+0xCA33BCC), (void*)jump_val, 16); // cxa throw
-	//memcpy((void*)(base+0xBFBF9DC), (void*)jump_val, 16); // MinecraftEventing::fireEventCloudOperationEndedEdu
-	void (*silentStub)()=[]() {};
-	jump_val[1]=(uint64_t)silentStub;
-	//memcpy((void*)(base+0xAA713E8), (void*)jump_val, 16); // hooking stack error check
-	//memcpy((void*)(base+0xD55F440), (void*)jump_val, 16); // dangerous!!!
-	//memcpy((void*)(base+0xD54417C), (void*)jump_val, 16);
-	*(uint64_t*)(base+0xDCBF8B0)=(uint64_t)myStub;
-	*(uint64_t*)(base+0xDCBF8B8)=(uint64_t)myStub;
-	*(uint64_t*)(base+0xDCBF8C0)=(uint64_t)myStub;
+	memcpy((void*)(base+0x5CC015C), (void*)jump_val, 16); // android stub
+	*(uint64_t*)(base+0xDfc5a58)=(uint64_t)myStub;
+	*(uint64_t*)(base+0xdfc5a60)=(uint64_t)myStub;
+	*(uint64_t*)(base+0xdfc5a68)=(uint64_t)myStub;
 	// ^ Bedrock::StorageArea_android hooks
 	jump_val[1]=(uint64_t)logHook;
-	memcpy((void*)(base+0xD0E2884), (void*)jump_val, 16);
+	memcpy((void*)(base+0xD3E23E8), (void*)jump_val, 16);
 	// Dirty hook, disabling GameRules copy bc it crashes at Level::initialize
-	jump_val[1]=base+0xB619C48;
-	memcpy((void*)(base+0xB61DDB0), (void*)jump_val, 16);
+	jump_val[1]=base+0xB78F5AC;
+	memcpy((void*)(base+0xB793B04), (void*)jump_val, 16);
 	{
 		size_t base;
 		size_t size;
@@ -368,13 +249,13 @@ Hardware	: Qualcomm Technologies, Inc MSM8998
 	//uint64_t platformRuntimeInformation=((uint64_t(*)(void*))(base+0x5C138FC))(AppPlatform_obj);
 	//std::string *platformInfoStr=(std::string*)(platformRuntimeInformation+8);
 	//(*platformInfoStr)="Linux Dedicated Server 12345678 12345678";
-	void (*MinecraftWorkerPool_loadWorkerConfigurations)(uint64_t,uint64_t)=(void(*)(uint64_t,uint64_t))(base+0xC5B6A8C);
+	/*void (*MinecraftWorkerPool_loadWorkerConfigurations)(uint64_t,uint64_t)=(void(*)(uint64_t,uint64_t))(base+0xC5B6A8C);
 	void (*MinecraftWorkerPool_createSingletons)(void)=(void(*)(void))(base+0xC5B6D78);
 	void (*MinecraftWorkerPool_configureMainThread)(void)=(void(*)(void))(base+0xC5B6C70);
 	Log::info("Launcher", "Initializing MinecraftWorkerPool");
 	MinecraftWorkerPool_loadWorkerConfigurations(8,8);
 	MinecraftWorkerPool_configureMainThread();
-	MinecraftWorkerPool_createSingletons();
+	MinecraftWorkerPool_createSingletons();*/
 	Log::info("Launcher", "Constructing MinecraftEventing");
 	Core::PathBuffer emptyPathBuffer("");
 	MinecraftEventing *MinecraftEventing_obj=new MinecraftEventing(emptyPathBuffer);
@@ -386,8 +267,7 @@ Hardware	: Qualcomm Technologies, Inc MSM8998
 	Log::debug("Launcher", "Creating Core::FilePathManager");
 	Core::FilePathManager FilePathManager_object(currentPath,true);
 	Log::debug("Launcher", "Creating SaveTransactionManager");
-	WorkerPool *(*getasyncworkerpool)(void)=(WorkerPool*(*)(void))(base+0xC5B831C);
-	WorkerPool *asyncWorkerPool=getasyncworkerpool();
+	WorkerPool *asyncWorkerPool=(WorkerPool*)(base+0xE21C918);
 	SaveTransactionManager *stm_obj=new SaveTransactionManager(*asyncWorkerPool, *MinecraftScheduler::client(), [](bool saving) {
 		if(saving) {
 			Log::debug("SaveTransactionManager", "Saving...");
@@ -464,7 +344,9 @@ Hardware	: Qualcomm Technologies, Inc MSM8998
 	static FileArchiver *archiver=new FileArchiver(*MinecraftScheduler::client(), levelListCache, &FilePathManager_object, *repo,false,nullptr,stubContentKeyProvider, levelDbEnv, [](std::string const& str) {
 		Log::debug("FileArchiver/callback", "string: %s", str.c_str());
 	});*/
-	static VanillaGameModuleApp sharedModule;
+	//static VanillaGameModuleApp sharedModule;
+	static VanillaGameModuleApp *sharedModule;
+	VanillaGameModuleApp::getGameModule(&sharedModule);
 	void **minecraftApp=(void**)malloc(60*10);
 	memset((void*)minecraftApp,0,600);
 	minecraftApp[0]=(void*)myStub;
@@ -502,12 +384,12 @@ Hardware	: Qualcomm Technologies, Inc MSM8998
 	};
 	minecraftApp[9]=(void*)(void*(*)(void))[]()->void* {
 		Log::debug("getGameModuleShared", "called");
-		return (void*)&sharedModule;
+		return (void*)sharedModule;
 	};
 	minecraftApp[10]=(void*)(void(*)(std::string const& msg))[](std::string const& msg) {
 		Log::debug("requestServerShutdown", "Shutdown requested (stubbed), reason: %s", msg.c_str());
 	};
-	minecraftApp[11]=(void*)(FileArchiver*(*)(void))[]()->FileArchiver* {
+	minecraftApp[11]=(void*)(void*(*)(void))[]()->void* {
 		Log::debug("getFileArchiver", "called");
 		return nullptr;
 	};
@@ -527,7 +409,7 @@ Hardware	: Qualcomm Technologies, Inc MSM8998
 	mcApp->vtable=(void*)minecraftApp;
 	Log::debug("Launcher", "Creating CodeBuilder::Manager");
 	CodeBuilder::Manager manager(*mcApp);
-	((ServiceReference(*)(CodeBuilder::Manager *))(base+0x603D2F0))(&manager);
+	((ServiceReference(*)(CodeBuilder::Manager *))(base+0x61D746C))(&manager);
 	Log::debug("Launcher", "Creating ServerInstance");
 	ServerInstance *serverInstance=new ServerInstance(*mcApp, *serverInstanceEC);
 	Log::debug("Launcher", "ServerInstance constructed!");
@@ -543,8 +425,8 @@ Hardware	: Qualcomm Technologies, Inc MSM8998
 	LevelSettings *settings=new LevelSettings();
 	unsigned short *version=(unsigned short*)((uint64_t)settings+432);
 	version[0]=1;
-	version[1]=20;
-	version[2]=81;
+	version[1]=21;
+	version[2]=3;
 	//*((char*)version+80)=1;
 	// ^ ESSENTIAL, if unset, game will crash for NULL Biome pointers
 	std::random_device random_dev{"/dev/urandom"};
@@ -643,9 +525,9 @@ Hardware	: Qualcomm Technologies, Inc MSM8998
 			std::chrono::minutes(player_idle_timeout), world_dir, world_name, 
 			motd, *settings, max_view_distance, true,
 			{(uint16_t)server_port, (uint16_t)server_port_v6, max_players},
-			online_mode, {}, "normal", *((mce::UUID*(*)(void))(base+0x5C15324))(),
+			online_mode, {}, "normal", *(mce::UUID*)(base+0xE275AE8),
 			*MinecraftEventing_obj, *repo, ctm_obj, *resourcePackManager, 
-			createLevelStorage, "worlds", nullptr, "", "", "", "", 
+			createLevelStorage, "worlds", nullptr, "", "", "", "", "",
 			std::move(eduOpts), resourcePackManager, []() {
 			Log::info("Server", "Unloading level");
 		}, []() {
@@ -657,7 +539,7 @@ Hardware	: Qualcomm Technologies, Inc MSM8998
 	}
 	Log::debug("Launcher", "ServerInstance initialized!!");
 	*((uint64_t*)serverInstance +66)=10;
-	uint64_t *I18n_obj=((uint64_t *(*)())(base+0x8F23304))();
+	uint64_t *I18n_obj=((uint64_t *(*)())(base+0x918AF68))();
 	(*(void(**)(void*,ResourcePackManager*))(*I18n_obj+48))(I18n_obj,resourcePackManager);
 	(*(void(**)(void*,std::string const&))(*I18n_obj+136))(I18n_obj, language);
 	Log::info("Launcher", "Starting server");
