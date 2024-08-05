@@ -2,10 +2,10 @@
 
 An unstable hacky Minecraft Bedrock Edition server that runs on arm64 devices (e.g. Raspberry Pi)
 
-This launcher only supports Minecraft v1.20.81 at this point, and the configuration files might not actually work :(
-but still better than QEMU bc QEMU is slow af :/
+NOTE: This branch is for Minecraft **v1.21.2** (latest version), for Minecraft v1.20.81, [click here](https://github.com/LNSSPsd/arm64-mcpelauncher-server/tree/minecraft-v1.20.81.01).
 
-Support for latest version is to be done later
+This launcher supports only Minecraft v1.21.2 (switch to another branch for v1.20.81), and the configuration files might not actually work :(
+but still better than QEMU bc QEMU is slow af :/
 
 ![img](screenshot.png)
 
