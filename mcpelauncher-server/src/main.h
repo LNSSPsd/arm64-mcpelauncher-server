@@ -445,7 +445,7 @@ namespace cereal {
 };*/
 
 class ContentLog {
-	char filler[0x98];
+	char filler[0xB0];
 public:
 	ContentLog() {
 		((void(*)(ContentLog*))(base+0xD3E30E8))(this);
