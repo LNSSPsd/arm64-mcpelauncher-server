@@ -3,7 +3,6 @@
 #include <argparser.h>
 #include <mcpelauncher/minecraft_utils.h>
 #include <mcpelauncher/minecraft_version.h>
-#include <mcpelauncher/crash_handler.h>
 #include <mcpelauncher/path_helper.h>
 #include <mcpelauncher/mod_loader.h>
 #include <mcpelauncher/patch_utils.h>
@@ -27,6 +26,7 @@
 
 
 void printVersionInfo();
+void _registerCrashHandler();
 
 static bool showAssertErrors=true;
 
@@ -34,7 +34,7 @@ void gdb_point() {
 }
 
 int main(int argc, char* argv[]) {
-	CrashHandler::registerCrashHandler();
+	_registerCrashHandler();
 	MinecraftUtils::workaroundLocaleBug();
 
 	argparser::arg_parser p;
@@ -594,7 +594,7 @@ int main(int argc, char* argv[]) {
 	Log::info("Launcher", "Stopping...");
 	serverInstance->leaveGameSync();
 	Log::info("Launcher", "exit");
-	_Exit(0);
+	//_Exit(0);
 	return 0;
 }
 
