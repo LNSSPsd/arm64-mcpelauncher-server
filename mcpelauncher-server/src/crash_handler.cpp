@@ -9,6 +9,41 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+void print_disasm(uint32_t instruction, uint64_t addr, uint64_t base) {
+	if((instruction&0xfffffc1f)==0xd63f0000) {
+		printf("BLR X%u ",((instruction>>5)&0x1f));
+	}else if((instruction&0xfc000000)==0x94000000) {
+		int64_t offset=(instruction&(0x3ffffff))<<2;
+		if((offset&0xf000000)==0xf000000)
+			offset|=((uint64_t)-1)<<28;
+		uint64_t iaddr=(uint64_t)addr+offset;//-4 in call stack;
+		printf("BL %4p ",(void*)(iaddr-base));
+	}else if((instruction&0xbfe00400)==0xe8400400) {
+		// LDR (Pre-index or Post-index)
+		printf("LDR ");
+		if(instruction>>30==2)
+			printf("W");
+		else
+			printf("X");
+		printf("%u, [ ", instruction&((1<<5)-1));
+		uint32_t rd=(instruction>>5)&((1<<5)-1);
+		if(rd==31)
+			printf("SP ");
+		else
+			printf("X%u ",rd);
+		bool postindex=(instruction&0xc00)==0x400;
+		int32_t offset=(rd>>12)&((1<<9)-1);
+		if(offset&0x100)
+			offset|=0xfffffe;
+		if(postindex)
+			printf("], #%d ",offset);
+		else
+			printf(", #%d ]! ",offset);
+	}else if((instruction&0xbfc00000)==0xb9400000) {
+		// LDR (Unsigned)
+
+	}
+}
 
 static bool _hasCrashed = false;
 
@@ -29,17 +64,7 @@ void _handleSignal(int signal, void *aptr) {
         return;
     _hasCrashed = true;
 
-    // Workaround against application freeze while dumping stacktrace
-    // stop app from bouncing more than one sec. on crash macOS x86_64
-    std::thread([signal](){
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        printf("Backtrace or dumping stack hung up, aborting\n");
-        printf("Why does some people think exit code %d is something meanful? It is just a unix signal number.\n", signal);
-        fflush(stdout);
-        _Exit(signal);
-    }).detach();
-
-    void** ptr = &aptr;
+    void **ptr=&aptr;
 
     int pipeval[2];
     if(pipe2(pipeval,O_NONBLOCK)==-1) {

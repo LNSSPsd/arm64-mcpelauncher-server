@@ -127,67 +127,39 @@ int main(int argc, char* argv[]) {
 	Log::debug("Launcher", "Minecraft is at offset %p", (void*)MinecraftUtils::getLibraryBase(handle));
 	base = MinecraftUtils::getLibraryBase(handle);
 	gdb_point();
-	if(*(uint64_t*)(base+0x29d8fd0)!=0x6c616974696e6900L) {
-		Log::error("Launcher", "Incompatible Minecraft version, only v1.21.60.28 is supported.");
-		return 52;
-	}
+	//if(*(uint64_t*)(base+0x29d8fd0)!=0x6c616974696e6900L) {
+	//	Log::error("Launcher", "Incompatible Minecraft version, only v1.21.60.28 is supported.");
+	//	return 52;
+	//}
 
-	modLoader.loadModsFromDirectory(PathHelper::getPrimaryDataDirectory() + "mods/");
+	//modLoader.loadModsFromDirectory(PathHelper::getPrimaryDataDirectory() + "mods/");
 
-	Log::info("Launcher", "Game version: v1.21.60.28");
+	Log::info("Launcher", "Game version: v1.21.101.1");
 
 	//Log::info("Launcher", "SERVER!");
 	Log::debug("Launcher", "Setting main thread");
-	((void(*)(bool))(base+0xF3CD544))(true);
+	((void(*)(bool))(base+0xCD0E900))(true);
 	Log::debug("Launcher", "Creating ContentLog");
 	ContentLog *contentLog=new ContentLog;
 	Log::debug("Launcher", "Creating AppConfigs");
 	std::unique_ptr<AppConfigs> appConfigs=AppConfigsFactory::createAppConfigs();
-	((ServiceReference(*)(ContentLog*))(base+0x6D3F1F8))(contentLog);
-	((ServiceReference(*)(AppConfigs*))(base+0x6D83854))(appConfigs.get());
+	((ServiceReference(*)(ContentLog*))(base+0x628DB0C))(contentLog);
+	((ServiceReference(*)(AppConfigs*))(base+0x62D8B8C))(appConfigs.get());
 	Log::info("Launcher", "Constructing AppPlatform");
 	AppPlatform *AppPlatform_obj=new AppPlatform(true);
-	*((char*)AppPlatform_obj +514)=1; // mIsUserStorageInitialized
+	*((char*)AppPlatform_obj +546)=1; // mIsUserStorageInitialized
 	Log::info("Launcher", "Patching AppPlatform vtable");
-	void **myvtable=(void**)malloc(2880);
-	memcpy((void*)myvtable,*(void**)AppPlatform_obj, 2880);
-	/*myvtable[15]=(void*)(uint64_t(*)(void))[]()->uint64_t {
-		// getBuildPlatform
-		return 15;
-	};*/
+	void **myvtable=(void**)malloc(2816);
+	memcpy((void*)myvtable,*(void**)AppPlatform_obj, 2816);
+#if 0
 	myvtable[21]=(void*)(uint64_t(*)(void))[]()->uint64_t {
 		// getTotalPhysicalMemory
 		return 17179869184;
-	};
-	myvtable[32]=(void*)(std::string(*)())[]()->std::string {
-		// some path, idk
-		return "";
 	};
 	myvtable[73]=(void*)(std::string(*)(void))[]()->std::string {
 		//Log::info("AppPlatform","getPackagePath");
 		return "";
 	};
-	/*myvtable[164]=(void*)(void(*)(void))[]() {
-		Log::error("AppPlatform", "Fatal: queueForMainThread_DEPRECATED IS NOT IMPLEMENTED!!");
-		_Exit(1);
-	};
-	myvtable[165]=(void*)(void(*)(void))[]() {
-		Log::error("AppPlatform", "Fatal: getMainThreadQueue IS NOT IMPLEMENTED!!");
-		_Exit(1);
-	};
-	myvtable[206]=(void*)(uint64_t(*)(void))[]()->uint64_t {
-		// getPlatformType
-		return 0;
-	};
-	myvtable[209]=(void*)(std::string(*)(void))[]()->std::string {
-		return "Linux";
-	};
-	myvtable[210]=(void*)(std::string(*)(void))[]()->std::string {
-		return "Dedicated";
-	};
-	myvtable[221]=(void*)(std::string(*)(void))[]()->std::string {
-		return "com.mojang.minecraftpe_server";
-	};*/
 	myvtable[227]=(void*)(uint64_t(*)(void))[]()->uint64_t {
 		// getFreeMemory
 		struct sysinfo info;
@@ -202,27 +174,35 @@ int main(int argc, char* argv[]) {
 		// getUsedMemory
 		return 0;
 	};
-	myvtable[247]=(void*)(bool(*)())[]()->bool {
-		// isTablet
-		return false;
-	};
-	/*myvtable[265]=(void*)(uint64_t(*)())[]()->uint64_t {
-		// calculateAvailableDiskFreeSpace(Core::Path const&)
-		return 1024L*1024L*1024L*1024L;
-	};
-	myvtable[302]=(void*)(bool(*)(void))[]()->bool {
-		// canAppSelfTerminate
-		return true;
-	};*/
-	void *justCurrentWd=(void*)(std::string(*)())[]()->std::string {
-		Log::info("Launcher", "current workdir");
-		return "";
-	};
 	myvtable[341]=justCurrentWd;
 	myvtable[342]=justCurrentWd;
 	myvtable[343]=justCurrentWd;
 	myvtable[344]=justCurrentWd;
 	myvtable[352]=justCurrentWd;
+#endif
+	myvtable[21]=(void*)(uint64_t(*)(void))[]()->uint64_t {
+		// getTotalPhysicalMemory
+		return 17179869184;
+	};
+	myvtable[72]=(void*)(std::string(*)())[]()->std::string {
+		Log::info("AppPlatform","getPackagePath");
+		return ".";
+	};
+	myvtable[226]=(void*)(uint64_t(*)(void))[]()->uint64_t {
+		// getTotalMemory
+		return 17179869184;
+	};
+	myvtable[246]=(void*)(bool(*)())[]()->bool {
+		// isTablet
+		return false;
+	};
+	void *justCurrentWd=(void*)(std::string(*)())[]()->std::string {
+		Log::info("Launcher", "current workdir");
+		return "";
+	};
+	myvtable[340]=justCurrentWd;
+	myvtable[341]=justCurrentWd;
+	myvtable[349]=justCurrentWd;
 	*(void**)AppPlatform_obj=myvtable;
 	std::string (*myGetInternalStorageFunc)()=[]()->std::string {
 		Log::info("Launcher", "test");
@@ -243,15 +223,17 @@ int main(int argc, char* argv[]) {
 	};
 	myvtable[70]=(void*)myStub;
 	uint64_t jump_val[2]={0xD61F012058000049L};
-	jump_val[1]=(uint64_t)myStub;
-	memcpy((void*)(base+0x67BC880), (void*)jump_val, 16); // android stub
-	*(uint64_t*)(base+0xfb361b0)=(uint64_t)myStubTrue;
-	*(uint64_t*)(base+0xfb361c0)=(uint64_t)myStub;
+	jump_val[1]=(uint64_t)base+0xD7D11B8;
+	memcpy((void*)(base+0xd7d0e20),(void*)jump_val,16); // some string stuff
+	//memcpy((void*)(base+0x67BC880), (void*)jump_val, 16); // android stub
+	*(uint64_t*)(base+0xFA73748)=(uint64_t)myStub; // some device id manager stuff
+	*(uint64_t*)(base+0xFB5D260)=(uint64_t)myStubTrue;
+	*(uint64_t*)(base+0xFB5D270)=(uint64_t)myStub;
 	// ^ Bedrock::StorageArea_android hooks
 	jump_val[1]=(uint64_t)logHook;
-	memcpy((void*)(base+0xEF44aa4), (void*)jump_val, 16);
-	jump_val[1]=(uint64_t)throwError;
-	memcpy((void*)(base+0xf3d2da0), (void*)jump_val, 16);
+	memcpy((void*)(base+0xF0CE1B0), (void*)jump_val, 16);
+	//jump_val[1]=(uint64_t)throwError;
+	//memcpy((void*)(base+0xf3d2da0), (void*)jump_val, 16);
 	// Dirty hook, disabling GameRules copy bc it crashes at Level::initialize
 	/*jump_val[1]=base+0xB78F5AC;
 	memcpy((void*)(base+0xB793B04), (void*)jump_val, 16);*/
@@ -290,7 +272,7 @@ int main(int argc, char* argv[]) {
 	Log::debug("Launcher", "Creating Core::FilePathManager");
 	Core::FilePathManager FilePathManager_object(currentPath,true);
 	Log::debug("Launcher", "Creating SaveTransactionManager");
-	WorkerPool *asyncWorkerPool=((Bedrock::NonOwnerPointer<WorkerPool>*)(base+0xFD7CCC0))->ptr;
+	WorkerPool *asyncWorkerPool=((Bedrock::NonOwnerPointer<WorkerPool>*)(base+0xFD078D8))->ptr;
 	SaveTransactionManager *stm_obj=new SaveTransactionManager(*asyncWorkerPool, *MinecraftScheduler::client(), [](bool saving) {
 		if(saving) {
 			Log::debug("SaveTransactionManager", "Saving...");
@@ -317,18 +299,19 @@ int main(int argc, char* argv[]) {
 	}, ctm_obj,false);
 	std::shared_ptr<VanillaInPackagePacks> vanillaInPackagePacks=std::make_shared<VanillaInPackagePacks>();
 	Log::debug("Launcher", "Creating PackSourceFactory");
-	PackSourceFactory *packSourceFactory=new PackSourceFactory(vanillaInPackagePacks);
+	void *null_pointer=nullptr;
+	void **ptr_to_nullptr=&null_pointer;
+	// ^ some pack command stuff we don't care enough abt
+	PackSourceFactory *packSourceFactory=new PackSourceFactory(vanillaInPackagePacks,nullptr,std::make_shared<void*>((void*)&ptr_to_nullptr));
 	char __empty_ref[16]={0};
 	void *empty_ref=(void*)__empty_ref;
-	PackCapabilityRegistry packCapabilityRegistry(empty_ref);
+	PackCapabilityRegistry packCapabilityRegistry;
 	Log::debug("Launcher", "Creating PackManifestFactory");
-	PackManifestFactory PackManifestFactory_object(packCapabilityRegistry,(void*)((uint64_t)MinecraftEventing_obj+24));
+	PackManifestFactory PackManifestFactory_object(packCapabilityRegistry,(void*)((uint64_t)MinecraftEventing_obj+24),nullptr);
 	void *stubContentKeyProviderV[8];
 	stubContentKeyProviderV[0]=(void*)myStub;
 	stubContentKeyProviderV[1]=(void*)myStub;
-	stubContentKeyProviderV[2]=(void*)(std::string(*)())[]()->std::string {
-		return "";
-	};
+	stubContentKeyProviderV[2]=(void*)myStub;
 	stubContentKeyProviderV[3]=stubContentKeyProviderV[2];
 	stubContentKeyProviderV[4]=(void*)myStub;
 	stubContentKeyProviderV[5]=(void*)myStub;
@@ -338,20 +321,24 @@ int main(int argc, char* argv[]) {
 	memset((void*)stubContentKeyProvider.filler,0,0x18-16);
 	*(void**)&stubContentKeyProvider=(void*)stubContentKeyProviderV;
 	Log::debug("Launcher", "Creating ResourcePackRepository");
-	ResourcePackRepository *repo=new ResourcePackRepository(*MinecraftEventing_obj, PackManifestFactory_object, stubContentKeyProvider, FilePathManager_object,*packSourceFactory,false);
+	std::shared_ptr<ResourcePacks> respacks=std::make_shared<ResourcePacks>();
+	char memreg[380]={0};
+	ResourcePackRepository *repo=new ResourcePackRepository(respacks,*MinecraftEventing_obj, PackManifestFactory_object, stubContentKeyProvider, FilePathManager_object,std::unique_ptr<char>(memreg),*packSourceFactory,false);
 	Log::debug("Launcher", "Adding vanilla resource pack");
 	std::unique_ptr<ResourcePackStack> stack (new ResourcePackStack());
-	Log::debug("Launcher", "vanilla pack is: %p", *((void**)repo+16));
-	//std::string const &val=((std::string const&(*)(void*))(base+0x8E0A710))(*((void**)repo+15));
-	//raise(SIGTRAP);
-	void *packManifest=((void*(*)(void*))(base+0x9C62870))(*((void**)repo+16));
-	std::string *vanilla_location=(std::string*)((uint64_t)packManifest+24 +8);
+	Log::debug("Launcher", "vanilla pack is: %p", *((void**)repo+15));
+	void *packManifest=((void*(*)(void*))(base+0x9C99AD0))(*((void**)repo+15));
+	// ^ PackManifest &ResourcePack::getManifest()
+	std::string *vanilla_location=(std::string*)((uint64_t)packManifest+32 +8);
 	Log::debug("Launcher", "vanilla pack is at %s", vanilla_location->c_str());
-	stack->add(PackInstance(**((ResourcePack**)repo +16), -1, false, nullptr), *repo, false);
+	stack->add(PackInstance(**((ResourcePack**)repo +15), -1, false, nullptr), *repo, false);
 	Log::debug("Launcher", "Added resource pack");
 	//void (*ResourcePackManager_setStack)(void *,std::unique_ptr<ResourcePackStack>, int, bool)=(void(*)(void*,std::unique_ptr<ResourcePackStack>,int,bool))(base+0x8D8ADB0);
 	resourcePackManager->setStack(std::move(stack),4,false);
 	Log::debug("Launcher", "set stack");
+	Log::info("Launcher","OK");
+	_exit(0);
+	// ==== TODO TODO TODO ====
 	ServerInstanceEventCoordinator *serverInstanceEC=new ServerInstanceEventCoordinator;
 	LevelDbEnv levelDbEnv;
 	/*Log::debug("Launcher", "Creating LevelListCache");
@@ -488,6 +475,7 @@ int main(int argc, char* argv[]) {
 		Log::error("Launcher", "Invalid difficulty, allowed values: peaceful, easy, normal, hard");
 		_Exit(3);
 	}
+	/*
 	*((char*)settings+127)=1; // override saved settings
 	*(uint64_t*)settings=std::stol(level_seed);
 	*((int*)((char*)settings+8))=gamemode;
@@ -498,7 +486,7 @@ int main(int argc, char* argv[]) {
 	*((char*)settings+128)=bonus_chest;
 	*((char*)settings+129)=start_with_map;
 	*((char*)settings+20)=force_gamemode;
-	*((char*)settings+93)=immutable_world;
+	*((char*)settings+93)=immutable_world;*/
 	Log::debug("Launcher", "Creating EducationOptions");
 	std::unique_ptr<EducationOptions> eduOpts=std::make_unique<EducationOptions>(resourcePackManager);
 	auto pathToLevel=eflss_obj.getPathToLevel(world_dir);
@@ -594,7 +582,7 @@ int main(int argc, char* argv[]) {
 	Log::info("Launcher", "Stopping...");
 	serverInstance->leaveGameSync();
 	Log::info("Launcher", "exit");
-	//_Exit(0);
+	_Exit(0);
 	return 0;
 }
 
