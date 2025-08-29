@@ -2,7 +2,7 @@
 
 An unstable hacky Minecraft Bedrock Edition server that runs on arm64 devices (e.g. Raspberry Pi)
 
-** THIS BRANCH IS A WORK IN PROGRESS **
+**THIS BRANCH IS A WORK IN PROGRESS**
 
 NOTE: This branch is for Minecraft **v1.21.101.01** (latest version as of August 29<sup>th</sup>, 2025),  
 for Minecraft v1.21.60.28, [click here](https://github.com/LNSSPsd/arm64-mcpelauncher-server/tree/minecraft-v1.21.60.28).
