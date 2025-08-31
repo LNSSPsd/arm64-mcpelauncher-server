@@ -45,9 +45,13 @@ namespace Bedrock {
 template <typename T>
 class OwnerPtr {
 public:
-	std::shared_ptr<T> ptr;
+	std::shared_ptr<Bedrock::EnableNonOwnerReferences::ControlBlock> mControlBlock;
+	T *ptr;
+
 	OwnerPtr(T* item) {
-		ptr=std::shared_ptr<T>(item);
+		mControlBlock=std::make_shared<Bedrock::EnableNonOwnerReferences::ControlBlock>();
+		mControlBlock->mIsValid=1;
+		ptr=(item);
 	}
 };
 
@@ -99,14 +103,14 @@ namespace Core {
 	struct FileStorageArea {
 		char filler[64]; //unsure
 		static Result getStorageAreaForPath(std::shared_ptr<FileStorageArea>& ptr, Path const& path) {
-			return ((Result(*)(std::shared_ptr<FileStorageArea>&, Path const&))(base+0xEF4BDCC))(ptr,path);
+			return ((Result(*)(std::shared_ptr<FileStorageArea>&, Path const&))(base+0xF0999F0))(ptr,path);
 		}
 	};
 
 	struct FilePathManager:public Bedrock::EnableNonOwnerReferences {
 		char filler[0x188-16]={0};
-		FilePathManager(Path const& path, bool v) {
-			((void(*)(FilePathManager*,Path const&, bool))(base+0xF0343D4))(this,path,v);
+		FilePathManager(char *idk) {
+			((void(*)(FilePathManager*,char*))(base+0xF0343D4))(this,idk);
 		}
 	};
 };
@@ -125,14 +129,14 @@ struct ContentIdentity {
 struct LevelDbEnv:public Bedrock::EnableNonOwnerReferences {
 	char filler[0x28-16];
 	LevelDbEnv() {
-		((void(*)(LevelDbEnv*))(base+0x9DFE1A0))(this);
+		((void(*)(LevelDbEnv*))(base+0x9992998))(this);
 	}
 };
 
 struct LevelStorageEventing {
 	char filler[0x70];
 	LevelStorageEventing(std::string const& a, void* b, std::string const& c) {
-		((void(*)(void*,std::string const&, void *, std::string const&))(base+0xCB22D10))((void*)this,a,b,c);
+		((void(*)(void*,std::string const&, void *, std::string const&))(base+0xD512DC4))((void*)this,a,b,c);
 	}
 };
 
@@ -153,15 +157,15 @@ public:
 	}
 
 	OwnerPtr<LevelStorage> createLevelStorage(Scheduler& scheduler, std::string const& name, ContentIdentity const& contentIdentity, Bedrock::NonOwnerPointer<StubContentKeyProvider const> const& contentKeyProvider, std::chrono::nanoseconds const& flushInterval, Bedrock::NonOwnerPointer<LevelDbEnv> levelDBEnv, std::unique_ptr<LevelStorageEventing> eventing) {
-		return ((OwnerPtr<LevelStorage>(*)(ExternalFileLevelStorageSource *, Scheduler&,std::string const&, ContentIdentity const&,Bedrock::NonOwnerPointer<StubContentKeyProvider const> const&, std::chrono::nanoseconds const&, Bedrock::NonOwnerPointer<LevelDbEnv>, std::unique_ptr<LevelStorageEventing>))(base+0xCB074A8))(this,scheduler,name,contentIdentity, contentKeyProvider, flushInterval, levelDBEnv, std::move(eventing));
+		return ((OwnerPtr<LevelStorage>(*)(ExternalFileLevelStorageSource *, Scheduler&,std::string const&, ContentIdentity const&,Bedrock::NonOwnerPointer<StubContentKeyProvider const> const&, std::chrono::nanoseconds const&, Bedrock::NonOwnerPointer<LevelDbEnv>, std::unique_ptr<LevelStorageEventing>))(base+0xD5411C8))(this,scheduler,name,contentIdentity, contentKeyProvider, flushInterval, levelDBEnv, std::move(eventing));
 	}
 
 	Core::PathBuffer getPathToLevel(std::string const& level) {
-		return ((Core::PathBuffer(*)(ExternalFileLevelStorageSource *,std::string const&))(base+0xCB08E30))(this,level);
+		return ((Core::PathBuffer(*)(ExternalFileLevelStorageSource *,std::string const&))(base+0xD542A88))(this,level);
 	}
 
 	Core::Result getLevelData(std::string const& level, LevelData &data) {
-		return ((Core::Result(*)(ExternalFileLevelStorageSource *,std::string const&,LevelData&))(base+0xCB08A04))(this,level,data);
+		return ((Core::Result(*)(ExternalFileLevelStorageSource *,std::string const&,LevelData&))(base+0xD54266C))(this,level,data);
 	}
 };
 
@@ -177,7 +181,7 @@ public:
 struct LevelData {
 	char filler[1600];
 	LevelData(bool isEduMode) {
-		((void(*)(LevelData*,bool))(base+0xCB13F08))(this,isEduMode);
+		((void(*)(LevelData*,bool))(base+0xD54DE18))(this,isEduMode);
 	}
 };
 
@@ -190,11 +194,11 @@ public:
 };
 
 class ServerInstanceEventCoordinator:public Bedrock::EnableNonOwnerReferences {
-	char filler[0x80-16];
+	char filler[112-16];
 public:
 	ServerInstanceEventCoordinator() {
-		memset((void*)filler,0,0x80-16);
-		*(uint64_t*)this=base+0xF5F6560;
+		memset(filler,0,112-16);
+		*(uint64_t*)this=base+0xF5DA718;
 	};
 };
 
@@ -228,7 +232,7 @@ public:
 		char filler[0x28];
 	public:
 		Manager(MinecraftApp& app) {
-			((void(*)(CodeBuilder::Manager*,MinecraftApp&))(base+0xDAEB738))(this,app);
+			((void(*)(CodeBuilder::Manager*,MinecraftApp&))(base+0xD719AE4))(this,app);
 		}
 	};
 };
@@ -293,8 +297,8 @@ public:
 	}
 };
 
-class VanillaGameModuleApp {
-	char filler[32];
+class VanillaGameModuleApp:public Bedrock::EnableNonOwnerReferences {
+	char filler[72-16];
 public:
 	//VanillaGameModuleApp() {
 	//	((void(*)(VanillaGameModuleApp*))(base+0x4B9AB0C))(this);
@@ -304,7 +308,7 @@ public:
 	}*/
 
 	static void getGameModule(VanillaGameModuleApp **module) {
-		((void(*)(VanillaGameModuleApp**))(base+0x55db940))(module);
+		((void(*)(VanillaGameModuleApp**))(base+0x4D783C4))(module);
 	}
 };
 
@@ -340,7 +344,7 @@ struct AppPlatform : public Bedrock::EnableNonOwnerReferences {
 };
 
 struct MinecraftEventing : public Bedrock::EnableNonOwnerReferences {
-	char filler[472-16]={0};
+	char filler[472-16];
 	MinecraftEventing(Core::PathBuffer buf) {
 		((void(*)(MinecraftEventing*,Core::PathBuffer))(base+0xD7CFAA8))(this,buf);
 	}
@@ -354,7 +358,7 @@ struct MinecraftEventing : public Bedrock::EnableNonOwnerReferences {
 struct EducationOptions {
 	char filler[0x38];
 	EducationOptions(ResourcePackManager *resourcePackManager) {
-		((void(*)(void*,ResourcePackManager*))(base+0x9CA5198))((void*)this, resourcePackManager);
+		((void(*)(void*,ResourcePackManager*))(base+0x9D26460))((void*)this, resourcePackManager);
 	}
 };
 
@@ -396,7 +400,7 @@ struct PermissionsFile {
 struct AllowList {
 	char filler[0x50]={0};//not confirmed
 	AllowList() {
-		*(uint64_t*)filler=base+0xF83DB60;
+		*(uint64_t*)filler=base+0xF8C4D38;
 	}
 };
 
@@ -408,9 +412,9 @@ struct GameRules {
 };
 
 struct LevelSettings {
-	char filler[0x468];
+	char filler[1168];
 	LevelSettings() {
-		((void(*)(LevelSettings*))(base+0xC419890))(this);
+		((void(*)(LevelSettings*))(base+0xCE1103C))(this);
 	}
 };
 
@@ -442,17 +446,17 @@ struct NetworkSessionOwner:public Bedrock::EnableNonOwnerReferences {
 	char filler[0x20-16];
 
 	void createNetworkSession(int transportLayer) {
-		((void(*)(NetworkSessionOwner*,int))(base+0x9DD0328))(this,transportLayer);
+		((void(*)(NetworkSessionOwner*,int))(base+0x98A93DC))(this,transportLayer);
 	}
 	NetworkSessionOwner() {
-		((void(*)(NetworkSessionOwner*))(base+0x9DD0C4C))(this);
+		((void(*)(NetworkSessionOwner*))(base+0x98A9D6C))(this);
 	}
 };
 
 namespace cereal {
 	struct ReflectionCtx {
 		static ReflectionCtx& global() {
-			return ((ReflectionCtx&(*)(void))(base+0xEE82F3C))();
+			return ((ReflectionCtx&(*)(void))(base+0xEFD4718))();
 		}
 	};
 };
@@ -488,25 +492,28 @@ class ServerCommandOrigin {
 	char filler[0x40];
 public:
 	ServerCommandOrigin(std::string const& name, ServerLevel& lvl, char perm, int dimension) {
-		((void(*)(ServerCommandOrigin*,std::string const&,ServerLevel&,char,int))(base+0xA40bb7c))(this,name,lvl,perm,dimension);
+		((void(*)(ServerCommandOrigin*,std::string const&,ServerLevel&,char,int))(base+0xBC4DD98))(this,name,lvl,perm,dimension);
 	}
 };
 
 class MinecraftCommands {
 public:
 	void requestCommandExecution(std::unique_ptr<ServerCommandOrigin> origin, std::string const& cmd, int p, bool t) {
-		((void(*)(MinecraftCommands*,std::unique_ptr<ServerCommandOrigin>, std::string const&, int, bool))(base+0xA36A844))(this,std::move(origin),cmd,p,t);
+		((void(*)(MinecraftCommands*,std::unique_ptr<ServerCommandOrigin>, std::string const&, int, bool))(base+0xBC0D67C))(this,std::move(origin),cmd,p,t);
 	}
 };
 
 class Minecraft {
 public:
 	ServerLevel *getLevel() {
-		return ((ServerLevel*(*)(Minecraft*))(base+0xBF6453C))(this);
+		return ((ServerLevel*(*)(Minecraft*))(base+0xC0B4E54))(this);
 	}
 
-	MinecraftCommands *_getCommands() {
+	/*MinecraftCommands *_getCommands() {
 		return *(MinecraftCommands**)((void**)this +23);
+	}*/
+	MinecraftCommands *getCommands() {
+		return ((MinecraftCommands*(*)(Minecraft*))(base+0xC0B7C88))(this);
 	}
 };
 
@@ -522,14 +529,49 @@ struct ScriptSettings {
 	char filler[512];
 };
 
+class PacketSerializationController {
+	char contents[88];
+public:
+
+	static PacketSerializationController *createPacketSerializationController(void *val) {
+		return ((PacketSerializationController*(*)(void*))(base+0x6B23558))(val);
+	}
+};
+
+struct PortMappingInfo {
+	char filler[64];
+	class NetworkID{
+		char f[32];
+	};
+};
+
+namespace NetherNet {
+	using LogSeverity=int;
+};
+
+struct TextProcessorInitParams {
+	char filler[128]={0};
+};
+
+struct SignalingService :public Bedrock::EnableNonOwnerReferences {
+	char filler[64];
+};
+
+struct PacketGroupDefinition {
+	class PacketGroupBuilder{
+		char filler[64];
+	};
+};
+
 class ServerInstance {
 	char filler[0x320];
 public:
 	ServerInstance(MinecraftApp& app,Bedrock::NonOwnerPointer<ServerInstanceEventCoordinator> const& evc) {
-		((void(*)(ServerInstance*,MinecraftApp&,Bedrock::NonOwnerPointer<ServerInstanceEventCoordinator> const&))(base+0xA44E18C))(this,app,evc);
+		((void(*)(ServerInstance*,MinecraftApp&,Bedrock::NonOwnerPointer<ServerInstanceEventCoordinator> const&))(base+0xBC64E70))(this,app,evc);
 	}
 
 	bool initializeServer(MinecraftApp& app, AllowList& allowList, PermissionsFile* perm, 
+			std::optional<PacketGroupDefinition::PacketGroupBuilder> pgbuilder,
 			Bedrock::NonOwnerPointer<Core::FilePathManager> const& fpm, 
 			std::chrono::seconds idleTimeout, 
 			std::string worldName, 
@@ -550,10 +592,10 @@ public:
 			std::function<OwnerPtr<LevelStorage>(Scheduler&)> createLevelStorage,
 		       	std::string const& worldsPath, 
 			Bedrock::NonOwnerPointer<LevelData> levelDat, 
-			std::string idk1, 
-			std::string idk2, 
-			std::string idk3, 
-			std::string idk4, 
+			//std::string idk1, 
+			//std::string idk2, 
+			//std::string idk3, 
+			//std::string idk4, 
 			std::unique_ptr<EducationOptions> eduOptions, 
 			ResourcePackManager* resMgrPtr,
 		       	std::function<void()> unloadLevelFunc, 
@@ -568,6 +610,7 @@ public:
 			Experiments const& exp, 
 			bool idk8, 
 			bool idk9,
+			bool idk12,
 			float idk10, 
 			std::optional<bool> idk11, 
 			ForceBlockNetworkIdsAreHashes blockNetworkIdsAreHashes, 
@@ -575,22 +618,30 @@ public:
 			Bedrock::NonOwnerPointer<NetworkSessionOwner> networkSessionOwner, 
 			Bedrock::NonOwnerPointer<CDNConfig> cdnConfig, //nullable
 			//cereal::ReflectionCtx& reflectionCtx, 
-			Bedrock::NonOwnerPointer<ServerTextSettings> textSettings/*nullable*/) {
-		return ((bool(*)(ServerInstance*,MinecraftApp&, AllowList&, PermissionsFile*, Bedrock::NonOwnerPointer<Core::FilePathManager> const&, std::chrono::seconds, std::string, std::string, std::string, LevelSettings, int, bool, ConnectionDefinition const&, NetworkServerConfig const&, mce::UUID const&, MinecraftEventing&, Bedrock::NonOwnerPointer<ResourcePackRepository> const&, Bedrock::NonOwnerPointer<ContentTierManager const> const&, ResourcePackManager&, std::function<OwnerPtr<LevelStorage>(Scheduler&)>, std::string const&, Bedrock::NonOwnerPointer<LevelData>, std::string, std::string, std::string, std::string, std::unique_ptr<EducationOptions>, ResourcePackManager*, std::function<void()>, std::function<void()>, ServerMetrics*, DebugEndPoint*, bool, std::shared_ptr<Core::FileStorageArea>, NetworkSettingOptions const&, bool, bool, std::optional<PlayerMovementSettings>, ScriptSettings&&, Experiments const&, bool, bool, float, std::optional<bool>, ForceBlockNetworkIdsAreHashes, Bedrock::NonOwnerPointer<NetworkSessionOwner>, Bedrock::NonOwnerPointer<CDNConfig>, Bedrock::NonOwnerPointer<ServerTextSettings>
-))(base+0xa44e8f8))(this,app,allowList,perm,fpm,idleTimeout,worldName,displayName,serverMotd,levelSettings,maximumViewDistance,idk_use_true,connDef,networkServerConfig,someUUID,ev,resRepo,ctm,resMgr,createLevelStorage,worldsPath,levelDat,idk1,idk2,idk3,idk4,std::move(eduOptions),resMgrPtr,unloadLevelFunc,savingLevelFunc,serverMetrics,dbgEndPoint,idk_use_false,storageArea,networkSettingOpts,idk6,idk7,playerMovementSettings,std::move(scriptSettings),exp,idk8,idk9,idk10,idk11,blockNetworkIdsAreHashes,networkSessionOwner,cdnConfig,textSettings);
+			Bedrock::NonOwnerPointer<ServerTextSettings> textSettings/*nullable*/,
+			PortMappingInfo const& portMappingInfo,
+			NetherNet::LogSeverity logSeverity,
+			TextProcessorInitParams textprocinitparams,
+			std::optional<PortMappingInfo::NetworkID> networkID,
+			Bedrock::NonOwnerPointer<SignalingService> sigserv,
+			Experiments const& exp2,
+			std::unique_ptr<PacketSerializationController> packetSC) {
+		extern void gdb_point();gdb_point();
+		return ((bool(*)(ServerInstance*,MinecraftApp&, AllowList&, PermissionsFile*, std::optional<PacketGroupDefinition::PacketGroupBuilder>, Bedrock::NonOwnerPointer<Core::FilePathManager> const&, std::chrono::seconds, std::string, std::string, std::string, LevelSettings, int, bool, ConnectionDefinition const&, NetworkServerConfig const&, mce::UUID const&, MinecraftEventing&, Bedrock::NonOwnerPointer<ResourcePackRepository> const&, Bedrock::NonOwnerPointer<ContentTierManager const> const&, ResourcePackManager&, std::function<OwnerPtr<LevelStorage>(Scheduler&)>, std::string const&, Bedrock::NonOwnerPointer<LevelData>, /*std::string, std::string, std::string, std::string,*/ std::unique_ptr<EducationOptions>, ResourcePackManager*, std::function<void()>, std::function<void()>, ServerMetrics*, DebugEndPoint*, bool, std::shared_ptr<Core::FileStorageArea>, NetworkSettingOptions const&, bool, bool, std::optional<PlayerMovementSettings>, ScriptSettings&&, Experiments const&, bool, bool, bool, float, std::optional<bool>, ForceBlockNetworkIdsAreHashes, Bedrock::NonOwnerPointer<NetworkSessionOwner>, Bedrock::NonOwnerPointer<CDNConfig>, Bedrock::NonOwnerPointer<ServerTextSettings>,PortMappingInfo const&, NetherNet::LogSeverity, TextProcessorInitParams, std::optional<PortMappingInfo::NetworkID>, Bedrock::NonOwnerPointer<SignalingService>, Experiments const&, std::unique_ptr<PacketSerializationController>
+))(base+0xBC65624))(this,app,allowList,perm,pgbuilder,fpm,idleTimeout,worldName,displayName,serverMotd,levelSettings,maximumViewDistance,idk_use_true,connDef,networkServerConfig,someUUID,ev,resRepo,ctm,resMgr,createLevelStorage,worldsPath,levelDat,/*idk1,idk2,idk3,idk4,*/std::move(eduOptions),resMgrPtr,unloadLevelFunc,savingLevelFunc,serverMetrics,dbgEndPoint,idk_use_false,storageArea,networkSettingOpts,idk6,idk7,playerMovementSettings,std::move(scriptSettings),exp,idk8,idk9,idk12,idk10,idk11,blockNetworkIdsAreHashes,networkSessionOwner,cdnConfig,textSettings,portMappingInfo,logSeverity,textprocinitparams,networkID,sigserv,exp2,std::move(packetSC));
 	}
 
 	void startServerThread() {
-		return ((void(*)(ServerInstance*))(base+0xA456BF0))(this);
+		return ((void(*)(ServerInstance*))(base+0xBC6EDA0))(this);
 	}
 
 	// void ServerInstance::_threadSafeExecute(std::function<void ()>)
 	void queueForServerThread(std::function<void()> func) {
-		return ((void(*)(ServerInstance*,std::function<void()>))(base+0xA456580))(this, func);
+		return ((void(*)(ServerInstance*,std::function<void()>))(base+0xBC6ef80))(this, func);
 	}
 
 	void leaveGameSync() {
-		return ((void(*)(ServerInstance*))(base+0xA456664))(this);
+		return ((void(*)(ServerInstance*))(base+0xBC6E57C))(this);
 	}
 
 	inline Minecraft *_getMinecraft() {
@@ -612,10 +663,10 @@ void logHook(unsigned int category, std::bitset<3> set, int rule, int area, unsi
 		ourLevel = LogLevel::LOG_WARN;
 	if (level == 8)
 		ourLevel = LogLevel::LOG_ERROR;
-	std::string ourTag(((const char*(*)(int))(base+0xEF47068))(area));
-	ourTag += '/';
-	ourTag += tag;
-	Log::vlog(ourLevel, ourTag.c_str(), format, args);
+	//std::string ourTag(((const char*(*)(int))(base+0xF0D07B4))(area));
+	//ourTag += '/';
+	//ourTag += tag;
+	Log::vlog(ourLevel, tag, format, args);
 }
 
 

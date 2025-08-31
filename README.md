@@ -2,7 +2,11 @@
 
 An unstable hacky Minecraft Bedrock Edition server that runs on arm64 devices (e.g. Raspberry Pi)
 
-**THIS BRANCH IS A WORK IN PROGRESS**
+This project serves at most as a proof of concept that it is possible to run Minecraft server natively
+on aarch64 devices, and without symbols.
+
+For this version, online mode and skins have been stubbed as genuine Minecraft client would be barred from joining;
+and most of `server.properties` settings are unimplemented.
 
 NOTE: This branch is for Minecraft **v1.21.101.01** (latest version as of August 29<sup>th</sup>, 2025),  
 for Minecraft v1.21.60.28, [click here](https://github.com/LNSSPsd/arm64-mcpelauncher-server/tree/minecraft-v1.21.60.28).
@@ -10,8 +14,6 @@ for Minecraft v1.21.2.02, [click here](https://github.com/LNSSPsd/arm64-mcpelaun
 for Minecraft v1.20.81, [click here](https://github.com/LNSSPsd/arm64-mcpelauncher-server/tree/minecraft-v1.20.81.01).
 
 ![img](screenshot.png)
-
-Current progress: Up until resource pack loading.
 
 This project is based on [mcpelauncher](https://github.com/minecraft-linux/mcpelauncher-manifest) project.  
 Some ideas of the class structures came from [LeviLamina](https://github.com/LiteLDev/LeviLamina).

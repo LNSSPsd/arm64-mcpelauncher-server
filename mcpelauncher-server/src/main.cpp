@@ -83,6 +83,7 @@ int main(int argc, char* argv[]) {
 		{"treatments", data_dir.get()+"/treatments/"},
 		{"minecraftpe", data_dir.get()+"/minecraftpe/"},
 		{"premium_cache", data_dir.get()+"/premium_cache/"},
+		{"games", data_dir.get()+"/games/"},
 		{".", PathHelper::getGameDir()+"assets/"}
 	};
 	for(auto&& redir : shim::rewrite_filesystem_access) {
@@ -127,14 +128,14 @@ int main(int argc, char* argv[]) {
 	Log::debug("Launcher", "Minecraft is at offset %p", (void*)MinecraftUtils::getLibraryBase(handle));
 	base = MinecraftUtils::getLibraryBase(handle);
 	gdb_point();
-	//if(*(uint64_t*)(base+0x29d8fd0)!=0x6c616974696e6900L) {
-	//	Log::error("Launcher", "Incompatible Minecraft version, only v1.21.60.28 is supported.");
-	//	return 52;
-	//}
+	if(*(uint64_t*)(base+0xC582694)!=0x52800020aa0003e8L) {
+		Log::error("Launcher", "Incompatible Minecraft version, only v1.21.101.1 is supported.");
+		return 52;
+	}
 
 	//modLoader.loadModsFromDirectory(PathHelper::getPrimaryDataDirectory() + "mods/");
 
-	Log::info("Launcher", "Game version: v1.21.101.1");
+	Log::info("Launcher", "Game version: v1.21.101.01");
 
 	//Log::info("Launcher", "SERVER!");
 	Log::debug("Launcher", "Setting main thread");
@@ -197,9 +198,10 @@ int main(int argc, char* argv[]) {
 		return false;
 	};
 	void *justCurrentWd=(void*)(std::string(*)())[]()->std::string {
-		Log::info("Launcher", "current workdir");
+		//Log::info("Launcher", "current workdir");
 		return "";
 	};
+	myvtable[31]=justCurrentWd;
 	myvtable[340]=justCurrentWd;
 	myvtable[341]=justCurrentWd;
 	myvtable[349]=justCurrentWd;
@@ -223,8 +225,33 @@ int main(int argc, char* argv[]) {
 	};
 	myvtable[70]=(void*)myStub;
 	uint64_t jump_val[2]={0xD61F012058000049L};
+	jump_val[1]=(uint64_t)myStub;
+	*(uint64_t*)(base+0xc492bb8)=0xd65f03c0aa1f03e0;
+	*(uint64_t*)(base+0xc492ce8)=0xd65f03c0aa1f03e0;
+	*(uint64_t*)(base+0xc492c4c)=0xd65f03c0aa1f03e0;
+	*(uint64_t*)(base+0xc492d84)=0xd65f03c0aa1f03e0;
+	*(uint64_t*)(base+0xc492e18)=0xd65f03c0aa1f03e0;
+	*(uint64_t*)(base+0xc492eb0)=0xd65f03c0aa1f03e0;
+	*(uint64_t*)(base+0xc492f44)=0xd65f03c0aa1f03e0;
+	*(uint64_t*)(base+0xc49306c)=0xd65f03c0aa1f03e0;
+	*(uint64_t*)(base+0xc493100)=0xd65f03c0aa1f03e0;
+	*(uint64_t*)(base+0xc493240)=0xd65f03c0aa1f03e0;
+	*(uint64_t*)(base+0xc493194)=0xd65f03c0aa1f03e0;
+	*(uint64_t*)(base+0xc4847a0)=0xd65f03c0aa1f03e0;
+	// ServerInstanceEventCoordinator stuff we don't care abt
+	// just make them return to avoid crashing (mov x0,xzr;ret)
+	*(uint32_t*)(base+0x9841204)=0x2a0103e0;
+	*(uint64_t*)(base+0x9841008)=0xd503201fd503201f;
+	*(uint32_t*)(base+0x9841010)=0xd503201f;
+	// Get rid of authentication stuff bc genuine Minecraft client
+	// cannot get in???
+	//memcpy((void*)(base+0xc492bb8),(void*)jump_val,16);
+	//memcpy((void*)(base+0xc492ce8),(void*)jump_val,16);
 	jump_val[1]=(uint64_t)base+0xD7D11B8;
 	memcpy((void*)(base+0xd7d0e20),(void*)jump_val,16); // some string stuff
+	jump_val[1]=(uint64_t)myStubTrue;
+	memcpy((void*)(base+0xC582694),(void*)jump_val,16);
+	// idk... Disable skins? Workaround for disconnectionScreen.invalidSkin
 	//memcpy((void*)(base+0x67BC880), (void*)jump_val, 16); // android stub
 	*(uint64_t*)(base+0xFA73748)=(uint64_t)myStub; // some device id manager stuff
 	*(uint64_t*)(base+0xFB5D260)=(uint64_t)myStubTrue;
@@ -237,6 +264,7 @@ int main(int argc, char* argv[]) {
 	// Dirty hook, disabling GameRules copy bc it crashes at Level::initialize
 	/*jump_val[1]=base+0xB78F5AC;
 	memcpy((void*)(base+0xB793B04), (void*)jump_val, 16);*/
+	//*(uint32_t*)(base+0xD512DC4)=(uint32_t)0x1f2003d5;//0xd503201f;
 	{
 		size_t base;
 		size_t size;
@@ -265,12 +293,12 @@ int main(int argc, char* argv[]) {
 	Core::PathBuffer emptyPathBuffer("");
 	MinecraftEventing *MinecraftEventing_obj=new MinecraftEventing(emptyPathBuffer);
 	//Core::Path currentPath{currentWd,true,strlen(currentWd)};
-	Core::Path currentPath{""};
 	Log::debug("Launcher", "Initializing MinecraftEventing");
 	MinecraftEventing_obj->init(*AppPlatform_obj);
 	//WorldSessionEndPoint endPoint(*MinecraftEventing_obj);
 	Log::debug("Launcher", "Creating Core::FilePathManager");
-	Core::FilePathManager FilePathManager_object(currentPath,true);
+	char buf_idk[256]={0};
+	Core::FilePathManager FilePathManager_object(buf_idk);
 	Log::debug("Launcher", "Creating SaveTransactionManager");
 	WorkerPool *asyncWorkerPool=((Bedrock::NonOwnerPointer<WorkerPool>*)(base+0xFD078D8))->ptr;
 	SaveTransactionManager *stm_obj=new SaveTransactionManager(*asyncWorkerPool, *MinecraftScheduler::client(), [](bool saving) {
@@ -336,10 +364,8 @@ int main(int argc, char* argv[]) {
 	//void (*ResourcePackManager_setStack)(void *,std::unique_ptr<ResourcePackStack>, int, bool)=(void(*)(void*,std::unique_ptr<ResourcePackStack>,int,bool))(base+0x8D8ADB0);
 	resourcePackManager->setStack(std::move(stack),4,false);
 	Log::debug("Launcher", "set stack");
-	Log::info("Launcher","OK");
-	_exit(0);
-	// ==== TODO TODO TODO ====
 	ServerInstanceEventCoordinator *serverInstanceEC=new ServerInstanceEventCoordinator;
+	gdb_point();
 	LevelDbEnv levelDbEnv;
 	/*Log::debug("Launcher", "Creating LevelListCache");
 	std::function<bool()> llc_cb=[]()->bool {
@@ -379,39 +405,39 @@ int main(int argc, char* argv[]) {
 		Log::debug("getAutomationClient", "stubbed");
 		return nullptr;
 	};
-	minecraftApp[6]=(void*)(bool(*)(void))[]()->bool {
+	minecraftApp[8]=(void*)(bool(*)(void))[]()->bool {
 		Log::debug("isEduMode", "false");
 		// isEduMode
 		return false;
 	};
-	minecraftApp[7]=(void*)(bool(*)(void))[]()->bool {
+	minecraftApp[9]=(void*)(bool(*)(void))[]()->bool {
 		Log::debug("isDedicatedServer", "true");
 		// isDedicatedServer
 		return true;
 	};
-	minecraftApp[8]=(void*)(void(*)(void))[]() {
+	minecraftApp[10]=(void*)(void(*)(void))[]() {
 		Log::debug("onNetworkMaxPlayersChanged", "triggered");
 	};
-	minecraftApp[9]=(void*)(void*(*)(void))[]()->void* {
+	minecraftApp[11]=(void*)(void*(*)(void))[]()->void* {
 		Log::debug("getGameModuleShared", "called");
 		return (void*)sharedModule;
 	};
-	minecraftApp[10]=(void*)(void(*)(std::string const& msg))[](std::string const& msg) {
+	minecraftApp[12]=(void*)(void(*)(std::string const& msg))[](std::string const& msg) {
 		Log::debug("requestServerShutdown", "Shutdown requested (stubbed), reason: %s", msg.c_str());
 	};
-	minecraftApp[11]=(void*)(void*(*)(void))[]()->void* {
+	minecraftApp[13]=(void*)(void*(*)(void))[]()->void* {
 		Log::debug("getFileArchiver", "called");
 		return nullptr;
 	};
-	minecraftApp[12]=(void*)(void(*)())[]() {
+	minecraftApp[14]=(void*)(void(*)())[]() {
 		Log::debug("ab","12");
 		abort();
 	};
-	minecraftApp[13]=(void*)(void(*)())[]() {
+	minecraftApp[15]=(void*)(void(*)())[]() {
 		Log::debug("ab","13");
 		abort();
 	};
-	minecraftApp[14]=(void*)(void(*)())[]() {
+	minecraftApp[16]=(void*)(void(*)())[]() {
 		Log::debug("ab","14");
 		abort();
 	};
@@ -419,7 +445,7 @@ int main(int argc, char* argv[]) {
 	mcApp->vtable=(void*)minecraftApp;
 	Log::debug("Launcher", "Creating CodeBuilder::Manager");
 	CodeBuilder::Manager manager(*mcApp);
-	((ServiceReference(*)(CodeBuilder::Manager *))(base+0x6D44B48))(&manager);
+	((ServiceReference(*)(CodeBuilder::Manager *))(base+0x6297048))(&manager);
 	Log::debug("Launcher", "Creating ServerInstance");
 	ServerInstance *serverInstance=new ServerInstance(*mcApp, *serverInstanceEC);
 	Log::debug("Launcher", "ServerInstance constructed!");
@@ -428,15 +454,15 @@ int main(int argc, char* argv[]) {
 	//perm.reload();
 	Log::debug("Launcher", "Creating LevelData");
 	LevelData *LevelData_object=new LevelData(false);
-	eflss_obj.getLevelData(world_dir, *LevelData_object);
+	//eflss_obj.getLevelData(world_dir, *LevelData_object);
 	//*((char*)LevelData_object +1244)=1;
 	//*((char*)LevelData_object +1265)=allow_cheats;
 	Log::debug("Launcher", "Creating LevelSettings");
 	LevelSettings *settings=new LevelSettings();
-	unsigned short *version=(unsigned short*)((uint64_t)settings+432);
+	unsigned short *version=(unsigned short*)((uint64_t)settings+456);
 	version[0]=1;
 	version[1]=21;
-	version[2]=60;
+	version[2]=101;
 	//*((char*)version+80)=1;
 	// ^ ESSENTIAL, if unset, game will crash for NULL Biome pointers
 	std::random_device random_dev{"/dev/urandom"};
@@ -532,31 +558,37 @@ int main(int argc, char* argv[]) {
 	properties::property<std::string> language(prop, "language", "en_US");
 	struct NetworkServerConfig networkServerConfig={
 		"normal",
-		true,
+		false,
 		{},
 		0
 	};
+	Log::debug("Launcher", "Creating PacketSerializationController");
+	PacketSerializationController *pserCon=PacketSerializationController::createPacketSerializationController(NULL);
+	PortMappingInfo portMappingInfo;
+	TextProcessorInitParams tpParams;
 	Log::debug("Launcher", "Initializing ServerInstance");
 	bool succ=serverInstance->initializeServer(*mcApp, allowList, nullptr/*&perm*/, 
+			std::nullopt,
 			FilePathManager_object,
 			std::chrono::minutes(player_idle_timeout), world_dir, world_name, 
 			motd, *settings, max_view_distance, true,
 			{(uint16_t)server_port, (uint16_t)server_port_v6, max_players},
-			networkServerConfig, *(mce::UUID*)(base+0xFDD88A8),
+			networkServerConfig, *(mce::UUID*)(base+0xFD998C8),
 			*MinecraftEventing_obj, *repo, ctm_obj, *resourcePackManager, 
-			createLevelStorage, "worlds", *LevelData_object, "", "", "", "",
+			createLevelStorage, "worlds", *LevelData_object, //"", "", "", "",
 			std::move(eduOpts), resourcePackManager, []() {
 			Log::info("Server", "Unloading level");
 		}, []() {
 			Log::info("Server", "Saving level");
-		}, nullptr, nullptr, false, storageArea, networkOpts, false, false,std::nullopt, ScriptSettings{}, *(Experiments*)((uint64_t)settings+376), false,false, 0.0, std::nullopt, ForceBlockNetworkIdsAreHashes::UseDefault, networkSessionOwner, nullptr, nullptr);
+		}, nullptr, nullptr, false, storageArea, networkOpts, false, false,std::nullopt, ScriptSettings{}, *(Experiments*)((uint64_t)settings+400), false,false,false, 0.0, std::nullopt, ForceBlockNetworkIdsAreHashes::UseDefault, networkSessionOwner, nullptr, nullptr,
+		portMappingInfo,7,tpParams,std::nullopt,nullptr,*(Experiments*)((uint64_t)settings+400),std::unique_ptr<PacketSerializationController>(pserCon));
 	if(!succ) {
 		Log::error("Launcher", "Failed to initialize ServerInstance");
 		_Exit(1);
 	}
 	Log::debug("Launcher", "ServerInstance initialized!!");
 	//*((uint64_t*)serverInstance +66)=10;
-	uint64_t *I18n_obj=((uint64_t *(*)())(base+0x9E01534))();
+	uint64_t *I18n_obj=((uint64_t *(*)())(base+0x9995AB4))();
 	// ^ getI18n()
 	Log::debug("Launcher", "Loading languages");
 	(*(void(**)(void*,ResourcePackManager*))(*I18n_obj+48))(I18n_obj,resourcePackManager);
@@ -575,7 +607,7 @@ int main(int argc, char* argv[]) {
 	while(reader.read(line)) {
 		serverInstance->queueForServerThread([&serverInstance, line]() {
 			std::unique_ptr<ServerCommandOrigin> commandOrigin(new ServerCommandOrigin("Server", (ServerLevel &)*serverInstance->_getMinecraft()->getLevel(), 5, true));
-			serverInstance->_getMinecraft()->_getCommands()->requestCommandExecution(std::move(commandOrigin), line, 4, true);
+			serverInstance->_getMinecraft()->getCommands()->requestCommandExecution(std::move(commandOrigin), line, 4, true);
 		});
 	}
 
